@@ -1,0 +1,40 @@
+#lang rhombus/static
+
+// Given a list of numbers H whose elements are all distinct,
+// find all triples (a, b, c) such that a < b < c and H[a] > H[b] < H[c].
+
+class FenwickTree(n, private arr :~ Array.of(Number) = for Array (i: 0..(n+1)): 0):
+  method query(x :~ Number) :~ Number:
+    recur loop(x = x, sum = 0):
+      if x == 0
+      | sum
+      | loop(x - (x bits.and (-x)), sum + arr[x])
+
+  method add(x :~ Number) :~ Void:
+    recur loop(x = x):
+      when x < arr.length()
+      | arr[x] := arr[x] + 1
+        loop(x + (x bits.and (-x)))
+
+fun count(H :~ List.of(Number)) :~ Number:
+  let N = H.length()
+  let sortedH = H.sort()
+  let heightMap = for Map (h: sortedH, index: 1..): values(h, index)
+  let compressedH = for List (h: H): heightMap[h]
+
+  fun getPrefixSum(compressedH :~ List.of(Number)) :~ List.of(Number):
+    let tree = FenwickTree(N + 1)
+    for List (h: compressedH):
+      tree.add(N - h + 1)
+      tree.query(N - h)
+
+  let cLeft = getPrefixSum(compressedH)
+  let cRight = getPrefixSum(compressedH.reverse()).reverse()
+
+  for values(sum = 0) (l: cLeft, r: cRight):
+    sum + l*r
+
+module test:
+  check:
+    count([10, 7, 12, 5, 8, 9]) ~is 11
+    count([10, 20, 25, 15, 5]) ~is 0
